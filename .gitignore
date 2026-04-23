@@ -35,5 +35,10 @@ runs/
 # IDE
 .vscode/
 .idea/
+node_modules/
+apps/operator-dashboard/dist/
 server_data/
 test_image.jpg
+config.json
+datasets/violations/
+datasets/command-center/uploads/

@@ -1,0 +1,174 @@
+name: smart-road-mvp
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sprs-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gateway_api}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-gateway_api}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: sprs-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  gateway-api:
+    container_name: sprs-gateway-api
+    build:
+      context: ..
+      dockerfile: services/gateway-api/Dockerfile
+    environment:
+      GATEWAY_API_HOST: 0.0.0.0
+      GATEWAY_API_PORT: ${GATEWAY_API_PORT:-8080}
+      GATEWAY_API_ENV: ${GATEWAY_API_ENV:-development}
+      GATEWAY_API_CORS_ORIGINS: ${GATEWAY_API_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      GATEWAY_API_SEED_DEMO_DATA: ${GATEWAY_API_SEED_DEMO_DATA:-true}
+      POSTGRES_ENABLED: ${POSTGRES_ENABLED:-true}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-gateway_api}
+      POSTGRES_ECHO: ${POSTGRES_ECHO:-false}
+      REDIS_URL: redis://redis:6379/0
+      AI_INFERENCE_BASE_URL: http://ai-inference:${AI_INFERENCE_PORT:-8090}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${GATEWAY_API_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=5).read()",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  ai-inference:
+    container_name: sprs-ai-inference
+    build:
+      context: ..
+      dockerfile: services/ai-inference/Dockerfile
+    environment:
+      AI_INFERENCE_HOST: 0.0.0.0
+      AI_INFERENCE_PORT: ${AI_INFERENCE_PORT:-8090}
+      AI_INFERENCE_ENV: ${AI_INFERENCE_ENV:-development}
+      AI_INFERENCE_MODEL_PATH: ${AI_INFERENCE_MODEL_PATH:-/app/yolov8n.pt}
+      AI_INFERENCE_SPEED_FACTOR: ${AI_INFERENCE_SPEED_FACTOR:-36.0}
+      AI_INFERENCE_LAZY_MODEL: ${AI_INFERENCE_LAZY_MODEL:-true}
+      AI_INFERENCE_GATEWAY_API_URL: ${AI_INFERENCE_GATEWAY_API_URL:-http://gateway-api:8080}
+      AI_INFERENCE_EVIDENCE_DIR: ${AI_INFERENCE_EVIDENCE_DIR:-/app/datasets/evidence}
+    depends_on:
+      gateway-api:
+        condition: service_healthy
+    ports:
+      - "${AI_INFERENCE_PORT:-8090}:8090"
+    volumes:
+      - ../datasets:/app/datasets
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=5).read()",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  operator-dashboard:
+    container_name: sprs-operator-dashboard
+    build:
+      context: ..
+      dockerfile: apps/operator-dashboard/Dockerfile
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://127.0.0.1:8080}
+      VITE_USE_MOCK_API: ${VITE_USE_MOCK_API:-false}
+    depends_on:
+      gateway-api:
+        condition: service_healthy
+    ports:
+      - "${OPERATOR_DASHBOARD_PORT:-5173}:5173"
+    volumes:
+      - ../datasets:/app/datasets:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:5173', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  command-center:
+    container_name: sprs-command-center
+    profiles:
+      - legacy
+    build:
+      context: ..
+      dockerfile: apps/command-center/Dockerfile
+    environment:
+      COMMAND_CENTER_HOST: 0.0.0.0
+      COMMAND_CENTER_PORT: ${COMMAND_CENTER_PORT:-8000}
+    ports:
+      - "${COMMAND_CENTER_PORT:-8000}:8000"
+    volumes:
+      - ../datasets:/app/datasets
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).read()",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

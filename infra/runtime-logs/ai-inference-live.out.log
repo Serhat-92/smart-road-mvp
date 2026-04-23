@@ -1,0 +1,5 @@
+{"level": "INFO", "logger": "ai_inference.service", "message": "Request completed", "path": "/health", "method": "GET", "status_code": 200, "duration_ms": 0.57}
+INFO:     127.0.0.1:55542 - "GET /health HTTP/1.1" 200 OK
+Model yukleniyor: yolov8n.pt...
+{"level": "INFO", "logger": "ai_inference.service", "message": "Request completed", "path": "/video/analyze", "method": "POST", "status_code": 200, "duration_ms": 368.69}
+INFO:     127.0.0.1:55545 - "POST /video/analyze HTTP/1.1" 200 OK

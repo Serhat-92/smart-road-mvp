@@ -1,0 +1,57 @@
+=127.0.0.1 : The term '=127.0.0.1' is not recognized as the name of a cmdlet, function, script file, or operable progra
+m. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ ='127.0.0.1'; ='8090'; ='development'; ='yolov8n.pt'; ='1.0'; ='true' ...
++ ~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=127.0.0.1:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=8090 : The term '=8090' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:15
++ ='127.0.0.1'; ='8090'; ='development'; ='yolov8n.pt'; ='1.0'; ='true' ...
++               ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=8090:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=development : The term '=development' is not recognized as the name of a cmdlet, function, script file, or operable pr
+ogram. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:24
++ ='127.0.0.1'; ='8090'; ='development'; ='yolov8n.pt'; ='1.0'; ='true' ...
++                        ~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=development:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=yolov8n.pt : The term '=yolov8n.pt' is not recognized as the name of a cmdlet, function, script file, or operable prog
+ram. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:40
++ ='127.0.0.1'; ='8090'; ='development'; ='yolov8n.pt'; ='1.0'; ='true' ...
++                                        ~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=yolov8n.pt:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=1.0 : The term '=1.0' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+ spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:55
++ ='127.0.0.1'; ='8090'; ='development'; ='yolov8n.pt'; ='1.0'; ='true' ...
++                                                       ~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=1.0:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=true : The term '=true' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:63
++ ... 0.1'; ='8090'; ='development'; ='yolov8n.pt'; ='1.0'; ='true'; Set-Lo ...
++                                                           ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=true:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+INFO:     Started server process [20624]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8090 (Press CTRL+C to quit)
+forrtl: error (200): program aborting due to window-CLOSE event
+Image              PC                Routine            Line        Source             
+KERNELBASE.dll     00007FFE75E0A3CD  Unknown               Unknown  Unknown
+KERNEL32.DLL       00007FFE7866E8D7  Unknown               Unknown  Unknown
+ntdll.dll          00007FFE793CC3FC  Unknown               Unknown  Unknown

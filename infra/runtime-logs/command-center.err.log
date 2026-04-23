@@ -1,0 +1,20 @@
+=127.0.0.1 : The term '=127.0.0.1' is not recognized as the name of a cmdlet, function, script file, or operable progra
+m. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ ='127.0.0.1'; ='8000'; Set-Location 'C:\Users\cifci\OneDrive\Desktop\ ...
++ ~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=127.0.0.1:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=8000 : The term '=8000' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:15
++ ='127.0.0.1'; ='8000'; Set-Location 'C:\Users\cifci\OneDrive\Desktop\ ...
++               ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=8000:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+INFO:     Started server process [5520]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)

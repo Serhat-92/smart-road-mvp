@@ -1,17 +1,19 @@
-# AI & Bilgisayarlı Görü
-ultralytics>=8.3.0    # YOLOv8 Modelleri ve Nesne Tespiti için
-opencv-python>=4.8.0  # Görüntü işleme ve Video okuma/yazma
-supervision>=0.16.0   # Gelişmiş görselleştirme ve tracker araçları
+# AI and computer vision
+ultralytics>=8.3.0
+opencv-python>=4.8.0
+supervision>=0.16.0
 
-# Donanım & IO
-pyserial>=3.5         # Radar donanımı (OPS243/HB100) ile UART/USB iletişimi
-obd>=0.7.1            # OBD-II Araç Beyni iletişimi (ELM327)
+# Hardware and IO
+pyserial>=3.5
+obd>=0.7.1
 
-# Matematik & Veri
-numpy>=1.24.0         # Matris işlemleri ve sayısal analiz
+# Data processing
+numpy>=1.24.0
 
-# 5G & Ağ Haberleşmesi (YENI)
-fastapi>=0.100.0      # Komuta Merkezi Sunucusu
-uvicorn>=0.23.0       # Sunucu Motoru
-requests>=2.31.0      # İstemci (Veri Gönderme)
-python-multipart>=0.0.6 # Resim Yükleme Desteği
+# API and networking
+fastapi>=0.100.0
+uvicorn>=0.23.0
+requests>=2.31.0
+python-multipart>=0.0.6
+jinja2>=3.1.0
+httpx>=0.27.0

@@ -1,0 +1,80 @@
+=127.0.0.1 : The term '=127.0.0.1' is not recognized as the name of a cmdlet, function, script file, or operable progra
+m. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ ='127.0.0.1'; ='8080'; ='INFO'; ='true'; ='true'; ='127.0.0.1'; ='543 ...
++ ~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=127.0.0.1:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=8080 : The term '=8080' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:15
++ ='127.0.0.1'; ='8080'; ='INFO'; ='true'; ='true'; ='127.0.0.1'; ='543 ...
++               ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=8080:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=INFO : The term '=INFO' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:24
++ ='127.0.0.1'; ='8080'; ='INFO'; ='true'; ='true'; ='127.0.0.1'; ='543 ...
++                        ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=INFO:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=true : The term '=true' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:33
++ ='127.0.0.1'; ='8080'; ='INFO'; ='true'; ='true'; ='127.0.0.1'; ='543 ...
++                                 ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=true:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=true : The term '=true' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:42
++ ='127.0.0.1'; ='8080'; ='INFO'; ='true'; ='true'; ='127.0.0.1'; ='543 ...
++                                          ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=true:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=127.0.0.1 : The term '=127.0.0.1' is not recognized as the name of a cmdlet, function, script file, or operable progra
+m. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:51
++ ... '127.0.0.1'; ='8080'; ='INFO'; ='true'; ='true'; ='127.0.0.1'; ='5432 ...
++                                                      ~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=127.0.0.1:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=5432 : The term '=5432' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:65
++ ... 1'; ='8080'; ='INFO'; ='true'; ='true'; ='127.0.0.1'; ='5432'; ='post ...
++                                                           ~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=5432:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=postgres : The term '=postgres' is not recognized as the name of a cmdlet, function, script file, or operable program.
+ Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:74
++ ... ='INFO'; ='true'; ='true'; ='127.0.0.1'; ='5432'; ='postgres'; ='post ...
++                                                       ~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=postgres:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=postgres : The term '=postgres' is not recognized as the name of a cmdlet, function, script file, or operable program.
+ Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:87
++ ... ue'; ='true'; ='127.0.0.1'; ='5432'; ='postgres'; ='postgres'; ='gate ...
++                                                       ~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=postgres:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=gateway_api : The term '=gateway_api' is not recognized as the name of a cmdlet, function, script file, or operable pr
+ogram. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:100
++ ... 127.0.0.1'; ='5432'; ='postgres'; ='postgres'; ='gateway_api'; Set-Lo ...
++                                                    ~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=gateway_api:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
