@@ -1,11 +1,16 @@
-"""Video source adapters for local files today and RTSP later."""
+"""Video source adapters for local files and RTSP streams."""
 
 from __future__ import annotations
 
-from pathlib import Path
+import logging
 import math
+import time
+from pathlib import Path
 
 from ..utils.paths import resolve_repo_path
+
+
+logger = logging.getLogger("ai_inference.video_sources")
 
 
 class OpenCVVideoSource:
@@ -81,12 +86,63 @@ class LocalVideoFileSource(OpenCVVideoSource):
 
 
 class RTSPVideoSource(OpenCVVideoSource):
-    """Placeholder RTSP source adapter for future expansion."""
+    """RTSP stream source adapter with reconnection support."""
 
-    def __init__(self, source: str):
+    def __init__(
+        self,
+        source: str,
+        *,
+        reconnect_attempts: int = 3,
+        reconnect_delay_seconds: float = 2.0,
+    ):
         if not source.lower().startswith("rtsp://"):
             raise ValueError(f"RTSP source must start with rtsp://, got: {source}")
         super().__init__(source, source_name=source)
+        self.reconnect_attempts = reconnect_attempts
+        self.reconnect_delay_seconds = reconnect_delay_seconds
+
+    def open(self) -> None:
+        """Open the RTSP stream with retry logic."""
+        cv2 = self._load_cv2()
+        last_error: Exception | None = None
+
+        for attempt in range(1, self.reconnect_attempts + 1):
+            try:
+                self._capture = cv2.VideoCapture(self.source)
+                if self._capture.isOpened():
+                    logger.info(
+                        "RTSP stream opened successfully on attempt %d: %s",
+                        attempt,
+                        self.source_name,
+                    )
+                    return
+                else:
+                    last_error = ValueError(
+                        f"RTSP stream could not be opened: {self.source_name}"
+                    )
+                    if self._capture is not None:
+                        self._capture.release()
+                        self._capture = None
+            except Exception as exc:
+                last_error = exc
+                if self._capture is not None:
+                    self._capture.release()
+                    self._capture = None
+
+            if attempt < self.reconnect_attempts:
+                logger.warning(
+                    "RTSP open attempt %d/%d failed, retrying in %.1fs: %s",
+                    attempt,
+                    self.reconnect_attempts,
+                    self.reconnect_delay_seconds,
+                    self.source_name,
+                )
+                time.sleep(self.reconnect_delay_seconds)
+
+        raise ValueError(
+            f"Unable to open RTSP source after {self.reconnect_attempts} attempts: "
+            f"{self.source_name} — last error: {last_error}"
+        )
 
 
 class VideoSourceFactory:
@@ -102,12 +158,10 @@ class VideoSourceFactory:
                 raise ValueError("Video source must not be empty")
 
             if stripped_source.lower().startswith("rtsp://"):
-                raise NotImplementedError(
-                    "RTSP support is not enabled yet. Use a local video file for now."
-                )
+                return RTSPVideoSource(stripped_source)
 
             return LocalVideoFileSource(stripped_source)
 
         raise ValueError(
-            "Only local video file paths are supported right now."
+            "Only local video file paths and rtsp:// URLs are supported."
         )

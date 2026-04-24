@@ -40,11 +40,26 @@ async function requestJson(path, searchParams) {
     });
   }
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Accept: "application/json",
-    },
-  });
+  const headers = {
+    Accept: "application/json",
+  };
+
+  // JWT auth: attach token if available
+  const token = window.localStorage.getItem("auth_token");
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url.toString(), { headers });
+
+  if (response.status === 401) {
+    // Token expired or invalid — clear and redirect to login
+    window.localStorage.removeItem("auth_token");
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+    throw new Error("Authentication required");
+  }
 
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
@@ -188,7 +203,7 @@ function deriveOutcome(event, payload) {
   return "recorded";
 }
 
-function mapGatewayEvent(event) {
+export function mapGatewayEvent(event) {
   const payload = event.payload || {};
   const estimatedSpeed = deriveEstimatedSpeed(payload);
   const radarSpeed = deriveRadarSpeed(payload);
@@ -219,6 +234,7 @@ function mapGatewayEvent(event) {
     evidenceUrl: deriveEvidenceUrl(evidencePath),
     evidenceAvailable: Boolean(evidencePath),
     sourceService: payload?.source_service || null,
+    plateNumber: payload?.plate_number || null,
     rawEvent: event,
   };
 }

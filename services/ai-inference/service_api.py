@@ -238,6 +238,8 @@ class InferenceAppState:
         settings: InferenceServiceSettings,
         service_factory=AIInferenceService,
     ):
+        from ai_inference.ocr import PlateReader
+
         self.settings = settings
         self.radar_fusion = RadarEventFusion()
         self.event_emitter = SpeedViolationEventEmitter(
@@ -246,6 +248,7 @@ class InferenceAppState:
                 timeout_s=settings.gateway_timeout_s,
             ),
             evidence_store=EvidenceStore(settings.evidence_dir),
+            plate_reader=PlateReader(),
         )
         self._service = None
         self._service_factory = service_factory

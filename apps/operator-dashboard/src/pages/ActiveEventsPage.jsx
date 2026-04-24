@@ -1,28 +1,62 @@
-import { getActiveEvents } from "../api/operatorApi";
+import { getActiveEvents, mapGatewayEvent } from "../api/operatorApi";
 import EventCard from "../components/EventCard";
 import MetricCard from "../components/MetricCard";
 import { EmptyState, ErrorState, LoadingState } from "../components/ResourceState";
 import { useAsyncResource } from "../hooks/useAsyncResource";
+import { useWebSocket } from "../hooks/useWebSocket";
 import { formatTimestamp } from "../lib/formatters";
+import { useEffect, useState } from "react";
 
 const EVENT_REFRESH_INTERVAL_MS = 5000;
 
 export default function ActiveEventsPage() {
-  const { data, error, isLoading, isRefreshing, lastUpdatedAt } = useAsyncResource(
+  const { data: initialData, error: initialError, isLoading } = useAsyncResource(
     () => getActiveEvents(),
     [],
-    { refreshIntervalMs: EVENT_REFRESH_INTERVAL_MS },
   );
+
+  const [events, setEvents] = useState([]);
+  const { data: wsEvent, isConnected: isWsConnected } = useWebSocket("/ws/events");
+
+  // Fallback polling if WS disconnected
+  const { data: polledData, isRefreshing, lastUpdatedAt } = useAsyncResource(
+    () => getActiveEvents(),
+    [],
+    { refreshIntervalMs: isWsConnected ? 0 : EVENT_REFRESH_INTERVAL_MS },
+  );
+
+  useEffect(() => {
+    if (initialData && events.length === 0) {
+      setEvents(initialData);
+    }
+  }, [initialData]);
+
+  useEffect(() => {
+    if (polledData && !isWsConnected) {
+      setEvents(polledData);
+    }
+  }, [polledData, isWsConnected]);
+
+  useEffect(() => {
+    if (wsEvent) {
+      const mappedEvent = mapGatewayEvent(wsEvent);
+      setEvents((prev) => {
+        // Prevent duplicates
+        if (prev.some((e) => e.eventId === mappedEvent.eventId)) return prev;
+        return [mappedEvent, ...prev].slice(0, 100); // Keep last 100
+      });
+    }
+  }, [wsEvent]);
 
   if (isLoading) {
     return <LoadingState label="Loading active event feed" />;
   }
 
-  if (error && !data) {
-    return <ErrorState error={error} />;
+  if (initialError && events.length === 0) {
+    return <ErrorState error={initialError} />;
   }
 
-  if (!data || data.length === 0) {
+  if (events.length === 0) {
     return (
       <EmptyState
         title="No active events"
@@ -31,10 +65,10 @@ export default function ActiveEventsPage() {
     );
   }
 
-  const violationCount = data.filter((item) => item.type === "speed.violation_alert").length;
-  const evidenceCount = data.filter((item) => item.evidenceAvailable).length;
+  const violationCount = events.filter((item) => item.type === "speed.violation_alert").length;
+  const evidenceCount = events.filter((item) => item.evidenceAvailable).length;
   const averageConfidence = Math.round(
-    (data.reduce((sum, item) => sum + item.confidence, 0) / data.length) * 100,
+    (events.reduce((sum, item) => sum + item.confidence, 0) / Math.max(events.length, 1)) * 100,
   );
 
   return (
@@ -42,7 +76,7 @@ export default function ActiveEventsPage() {
       <section className="hero-grid">
         <MetricCard
           label="Live Events"
-          value={data.length}
+          value={events.length}
           hint="Fetched directly from the gateway event feed."
           accent="amber"
         />
@@ -71,16 +105,15 @@ export default function ActiveEventsPage() {
           <p className="eyebrow">Near Real Time</p>
           <h3>Active gateway events</h3>
           <p className="muted-copy">
-            Refreshes every {EVENT_REFRESH_INTERVAL_MS / 1000}s
-            {lastUpdatedAt ? ` · last update ${formatTimestamp(lastUpdatedAt)}` : ""}
-            {isRefreshing ? " · refreshing..." : ""}
-            {error ? ` · latest refresh failed: ${error.message}` : ""}
+            {isWsConnected ? "Live via WebSocket" : `Refreshes every ${EVENT_REFRESH_INTERVAL_MS / 1000}s`}
+            {!isWsConnected && lastUpdatedAt ? ` · last update ${formatTimestamp(lastUpdatedAt)}` : ""}
+            {!isWsConnected && isRefreshing ? " · refreshing..." : ""}
           </p>
         </div>
       </section>
 
       <section className="card-grid">
-        {data.map((event) => (
+        {events.map((event) => (
           <EventCard key={event.eventId} event={event} />
         ))}
       </section>

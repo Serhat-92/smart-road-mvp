@@ -1,11 +1,20 @@
-"""Local-file video detection pipeline with modular source adapters."""
+"""Local-file and RTSP video detection pipeline with modular source adapters."""
 
+import logging
 import math
 import time
 
 from ..tracker import ApproximateSpeedEstimator, SimpleMultiObjectTracker
 from ..utils import FrameDetectionResult, FrameMetadata, VideoDetectionResult
 from .video_sources import VideoSourceFactory
+
+
+logger = logging.getLogger("ai_inference.video_pipeline")
+
+# Maximum frame read retries before attempting full stream reconnect
+_READ_RETRY_COUNT = 3
+# Maximum stream reconnects for RTSP sources
+_RECONNECT_MAX = 3
 
 
 class VideoDetectionPipeline:
@@ -42,6 +51,7 @@ class VideoDetectionPipeline:
         frame_source = self.source_factory.create(source)
         frame_source.open()
 
+        is_rtsp = str(getattr(frame_source, "source", "")).lower().startswith("rtsp://")
         source_fps = self._normalize_fps(frame_source.fps)
         processed_frames = 0
         sampled_frames = 0
@@ -59,13 +69,34 @@ class VideoDetectionPipeline:
         speed_estimator = self.speed_estimator_factory() if tracking_enabled else None
         generated_events = []
         published_track_ids = set()
+        consecutive_reconnects = 0
 
         try:
             while True:
-                ok, frame = frame_source.read()
+                ok, frame = self._read_frame_with_retry(
+                    frame_source, is_rtsp=is_rtsp
+                )
                 if not ok:
-                    break
+                    if is_rtsp and consecutive_reconnects < _RECONNECT_MAX:
+                        # Attempt full stream reconnect for RTSP
+                        logger.warning(
+                            "RTSP read failed after retries, attempting stream reconnect (%d/%d)",
+                            consecutive_reconnects + 1,
+                            _RECONNECT_MAX,
+                        )
+                        try:
+                            frame_source.release()
+                            frame_source.open()
+                            consecutive_reconnects += 1
+                            continue
+                        except Exception as reconnect_exc:
+                            logger.error("RTSP reconnect failed: %s", reconnect_exc)
+                            break
+                    else:
+                        break
 
+                # Successful read — reset reconnect counter
+                consecutive_reconnects = 0
                 processed_frames += 1
                 should_sample = self._should_sample_frame(
                     frame_index=current_frame_index,
@@ -139,6 +170,30 @@ class VideoDetectionPipeline:
             frames=frame_results,
             generated_events=generated_events,
         )
+
+    @staticmethod
+    def _read_frame_with_retry(frame_source, *, is_rtsp: bool = False):
+        """Read a frame with retry logic for RTSP streams."""
+        ok, frame = frame_source.read()
+        if ok:
+            return ok, frame
+
+        if not is_rtsp:
+            return False, None
+
+        # RTSP: retry up to _READ_RETRY_COUNT times
+        for attempt in range(1, _READ_RETRY_COUNT + 1):
+            logger.warning(
+                "RTSP frame read failed, retry %d/%d",
+                attempt,
+                _READ_RETRY_COUNT,
+            )
+            time.sleep(0.1)
+            ok, frame = frame_source.read()
+            if ok:
+                return ok, frame
+
+        return False, None
 
     @staticmethod
     def _compute_frame_interval(source_fps, sample_rate_fps):

@@ -29,10 +29,12 @@ class GatewayEventPublisher:
         self,
         *,
         base_url: str | None,
+        headers: dict | None = None,
         timeout_s: float = 5.0,
         opener=None,
     ):
         self.base_url = base_url.rstrip("/") if base_url else None
+        self.headers = headers or {}
         self.timeout_s = float(timeout_s)
         self.opener = opener or request.urlopen
 
@@ -66,10 +68,13 @@ class GatewayEventPublisher:
             "occurred_at": occurred_at,
         }
         encoded_body = json.dumps(request_body).encode("utf-8")
+        request_headers = {"Content-Type": "application/json"}
+        request_headers.update(self.headers)
+        
         http_request = request.Request(
             self.events_url,
             data=encoded_body,
-            headers={"Content-Type": "application/json"},
+            headers=request_headers,
             method="POST",
         )
 
@@ -251,10 +256,12 @@ class SpeedViolationEventEmitter:
         publisher: GatewayEventPublisher | None = None,
         evidence_store: EvidenceStore | None = None,
         source_service: str = "ai-inference-service",
+        plate_reader=None,
     ):
         self.publisher = publisher or GatewayEventPublisher(base_url=None)
         self.evidence_store = evidence_store or EvidenceStore(None)
         self.source_service = source_service
+        self.plate_reader = plate_reader
 
     def emit_speed_violation(
         self,
@@ -292,6 +299,15 @@ class SpeedViolationEventEmitter:
             else round(estimated_speed, 2)
         )
         violation_amount = max(fused_speed - float(speed_limit), 0.0)
+
+        # Plaka OCR — plate_reader lazy-load ile çalışır
+        plate_number = None
+        if self.plate_reader is not None and frame is not None:
+            try:
+                plate_number = self.plate_reader.read(frame, detection.bounding_box)
+            except Exception as exc:
+                logger.warning("Plate OCR failed: %s", exc)
+
         payload = {
             "schema_version": "1.0.0",
             "event_type": "speed.violation_alert",
@@ -310,6 +326,7 @@ class SpeedViolationEventEmitter:
             "violation_amount": round(violation_amount, 2),
             "track_id": detection.track_id,
             "label": detection.label,
+            "plate_number": plate_number,
             "radar": self._build_radar_payload(
                 radar_speed=radar_speed,
                 timestamp_ms=frame_metadata.timestamp_ms,

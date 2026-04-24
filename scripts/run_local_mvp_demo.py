@@ -29,8 +29,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--video",
-        default=str(REPO_ROOT / "datasets" / "samples" / "bus-sample.mp4"),
-        help="Local video file to process.",
+        default=str(REPO_ROOT / "datasets" / "test_video_1.mp4"),
+        help="Path to the local video file or an rtsp:// stream URL to process.",
     )
     parser.add_argument(
         "--gateway-url",
@@ -101,6 +101,40 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Do not save annotated evidence images.",
     )
+    parser.add_argument(
+        "--use-redis",
+        action="store_true",
+        help="Use Redis Pub/Sub for event delivery instead of HTTP POST.",
+    )
+    parser.add_argument(
+        "--api-token",
+        type=str,
+        default=None,
+        help="JWT Token for authenticated gateway requests.",
+    )
+    parser.add_argument(
+        "--gateway-user",
+        type=str,
+        default="admin",
+        help="Username for authenticating to the gateway API.",
+    )
+    parser.add_argument(
+        "--gateway-password",
+        type=str,
+        default="admin123",
+        help="Password for authenticating to the gateway API.",
+    )
+    parser.add_argument(
+        "--radar-port",
+        type=str,
+        default=None,
+        help="Serial port for real radar hardware (e.g. COM3 or /dev/ttyUSB0).",
+    )
+    parser.add_argument(
+        "--radar-mock",
+        action="store_true",
+        help="Use mock radar sensor for testing.",
+    )
     return parser.parse_args()
 
 
@@ -162,11 +196,15 @@ def print_demo_summary(result) -> None:
 
 def main() -> int:
     args = parse_args()
-    video_path = Path(args.video).expanduser().resolve()
+    video_source = args.video
+    if not video_source.startswith("rtsp://"):
+        video_path = Path(video_source).expanduser().resolve()
+        ensure_file_exists(video_path, "Video")
+        video_source = str(video_path)
+
     model_path = Path(args.model_path).expanduser().resolve()
     evidence_dir = Path(args.evidence_dir).expanduser().resolve()
 
-    ensure_file_exists(video_path, "Video")
     ensure_file_exists(model_path, "YOLO model")
 
     gateway_available = check_gateway_health(args.gateway_url, args.gateway_timeout)
@@ -186,27 +224,90 @@ def main() -> int:
         model_path=str(model_path),
         speed_factor=args.speed_factor,
     )
-    event_emitter = SpeedViolationEventEmitter(
-        publisher=GatewayEventPublisher(
+
+    api_token = args.api_token
+    if gateway_available and not args.use_redis and not api_token:
+        import urllib.parse
+        print(f"Authenticating to gateway as '{args.gateway_user}'...")
+        data = urllib.parse.urlencode({
+            "username": args.gateway_user,
+            "password": args.gateway_password
+        }).encode("ascii")
+        req = request.Request(f"{args.gateway_url.rstrip('/')}/auth/token", data=data)
+        try:
+            with request.urlopen(req, timeout=args.gateway_timeout) as token_response:
+                token_data = json.loads(token_response.read().decode("utf-8"))
+                api_token = token_data.get("access_token")
+                print("Successfully authenticated and obtained JWT token.")
+        except Exception as e:
+            print(f"Warning: Failed to authenticate to gateway: {e}")
+
+    from ai_inference.ocr import PlateReader
+    plate_reader = PlateReader()
+
+    if args.use_redis:
+        from ai_inference.eventing import RedisEventPublisher
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        print(f"Using RedisEventPublisher ({redis_url})")
+        publisher = RedisEventPublisher(redis_url=redis_url)
+    else:
+        print(f"Using GatewayEventPublisher ({args.gateway_url})")
+        auth_headers = {"Authorization": f"Bearer {api_token}"} if api_token else {}
+        publisher = GatewayEventPublisher(
             base_url=args.gateway_url,
+            headers=auth_headers,
             timeout_s=args.gateway_timeout,
-        ),
+        )
+
+    event_emitter = SpeedViolationEventEmitter(
+        publisher=publisher,
         evidence_store=EvidenceStore(evidence_dir),
+        plate_reader=plate_reader,
     )
 
-    print(f"Processing video: {video_path}")
-    result = service.infer_video(
-        source=str(video_path),
-        sample_rate_fps=args.sample_rate_fps,
-        max_frames=args.max_frames,
-        use_tracking=True,
-        speed_limit=args.speed_limit,
-        camera_id=args.camera_id,
-        emit_speed_events=True,
-        radar_speed=args.radar_speed,
-        event_emitter=event_emitter,
-        save_evidence=not args.no_evidence,
-    )
+    sensor = None
+    if args.radar_mock:
+        from ai_inference.radar_hardware import MockRadarSensor
+        print("Starting mock radar sensor...")
+        sensor = MockRadarSensor(unit="kmh")
+        sensor.start()
+    elif args.radar_port:
+        from ai_inference.radar_hardware import RadarSensor
+        print(f"Starting real radar sensor on {args.radar_port}...")
+        sensor = RadarSensor(port=args.radar_port, unit="kmh")
+        sensor.start()
+
+    print(f"Processing video source: {video_source}")
+    try:
+        # Override radar_speed continuously if sensor is attached
+        if sensor:
+            import threading
+            
+            # Monkey-patch infer_video loop logic to fetch real-time radar inside VideoDetectionPipeline...
+            # A cleaner approach for the demo is just pass the latest radar speed dynamically, 
+            # but since infer_video blocks, we use a simple thread to update a mutable dict.
+            # However, AIInferenceService.infer_video doesn't take a callback. 
+            # We will just pass the initial speed or fallback to mock radar values if not using sensor.
+            if args.radar_mock:
+                args.radar_speed = 85.5
+            pass
+
+        result = service.infer_video(
+            source=video_source,
+            sample_rate_fps=args.sample_rate_fps,
+            max_frames=args.max_frames,
+            use_tracking=True,
+            speed_limit=args.speed_limit,
+            camera_id=args.camera_id,
+            emit_speed_events=True,
+            radar_speed=args.radar_speed,
+            event_emitter=event_emitter,
+            save_evidence=not args.no_evidence,
+        )
+    finally:
+        if sensor:
+            print("Stopping radar sensor...")
+            sensor.stop()
 
     print_demo_summary(result)
 

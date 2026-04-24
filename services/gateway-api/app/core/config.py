@@ -37,6 +37,12 @@ class Settings:
     postgres_echo: bool
     postgres_connect_timeout_seconds: int
 
+    ws_enabled: bool = True
+    
+    jwt_secret_key: str = "smart-road-mvp-dev-secret"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 1440  # 24 hours
+
     @property
     def postgres_dsn(self) -> str:
         return (
@@ -60,8 +66,12 @@ class Settings:
 def get_settings() -> Settings:
     return Settings(
         app_name=os.getenv("GATEWAY_API_NAME", "gateway-api"),
+        jwt_secret_key=os.getenv("GATEWAY_JWT_SECRET_KEY", "smart-road-mvp-dev-secret"),
+        jwt_algorithm=os.getenv("GATEWAY_JWT_ALGORITHM", "HS256"),
+        jwt_expire_minutes=int(os.getenv("GATEWAY_JWT_EXPIRE_MINUTES", "1440")),
         version=os.getenv("GATEWAY_API_VERSION", "0.1.0"),
         environment=os.getenv("GATEWAY_API_ENV", "development"),
+        ws_enabled=os.getenv("GATEWAY_WS_ENABLED", "true").lower() == "true",
         host=os.getenv("GATEWAY_API_HOST", "0.0.0.0"),
         port=int(os.getenv("GATEWAY_API_PORT", "8080")),
         log_level=os.getenv("GATEWAY_API_LOG_LEVEL", "INFO").upper(),

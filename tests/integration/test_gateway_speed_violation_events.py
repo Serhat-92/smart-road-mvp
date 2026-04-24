@@ -73,7 +73,11 @@ class GatewaySpeedViolationEventIntegrationTests(unittest.TestCase):
         }
 
         with TestClient(app) as client:
-            response = client.post("/events", json=request_payload)
+            token_response = client.post("/auth/token", data={"username": "admin", "password": "admin123"})
+            token = token_response.json()["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
+            response = client.post("/events", json=request_payload, headers=headers)
             self.assertEqual(response.status_code, 201, response.text)
 
             body = response.json()
@@ -83,7 +87,7 @@ class GatewaySpeedViolationEventIntegrationTests(unittest.TestCase):
             self.assertEqual(body["payload"]["estimated_speed"], 84.0)
             self.assertEqual(body["payload"]["image_evidence_path"], request_payload["payload"]["image_evidence_path"])
 
-            list_response = client.get("/events")
+            list_response = client.get("/events", headers=headers)
             self.assertEqual(list_response.status_code, 200, list_response.text)
             list_body = list_response.json()
             self.assertGreaterEqual(list_body["total"], 1)

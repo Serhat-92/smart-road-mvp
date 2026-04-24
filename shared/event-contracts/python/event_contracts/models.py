@@ -105,6 +105,7 @@ class SpeedViolationAlert(ContractModel):
     violation_amount: float = Field(..., ge=0.0)
     track_id: int | None = None
     label: str | None = None
+    plate_number: str | None = None
     radar: RadarReading | None = None
     visual: VisualTrack | None = None
     image_evidence_path: str | None = None

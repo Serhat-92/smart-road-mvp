@@ -16,6 +16,7 @@ export default function HistoryTable({ items }) {
           <tr>
             <th>Event</th>
             <th>Track</th>
+            <th>Plaka</th>
             <th>Speed</th>
             <th>Confidence</th>
             <th>Evidence</th>
@@ -33,6 +34,9 @@ export default function HistoryTable({ items }) {
               <td>
                 <div className="table-title">{formatTrackId(item.trackId)}</div>
                 <div className="table-subtitle">{item.trackLabel}</div>
+              </td>
+              <td>
+                <div className="table-title">{item.plateNumber || "Yok"}</div>
               </td>
               <td>
                 <div className="table-title">{formatSpeed(item.estimatedSpeed)}</div>

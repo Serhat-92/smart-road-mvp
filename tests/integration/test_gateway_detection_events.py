@@ -64,7 +64,11 @@ class GatewayDetectionEventIntegrationTests(unittest.TestCase):
 
     def test_gateway_receives_valid_detection_event_and_persists_it(self):
         with TestClient(app) as client:
-            response = client.post("/events", json=self.build_gateway_event_request())
+            token_response = client.post("/auth/token", data={"username": "admin", "password": "admin123"})
+            token = token_response.json()["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
+            response = client.post("/events", json=self.build_gateway_event_request(), headers=headers)
             self.assertEqual(response.status_code, 201, response.text)
 
             body = response.json()
@@ -74,7 +78,7 @@ class GatewayDetectionEventIntegrationTests(unittest.TestCase):
             self.assertEqual(body["payload"]["frame"]["frame_index"], 12)
             self.assertEqual(body["payload"]["detections"][0]["label"], "car")
 
-            list_response = client.get("/events")
+            list_response = client.get("/events", headers=headers)
             self.assertEqual(list_response.status_code, 200, list_response.text)
             list_body = list_response.json()
             self.assertEqual(list_body["total"], 1)
@@ -91,7 +95,11 @@ class GatewayDetectionEventIntegrationTests(unittest.TestCase):
         invalid_request["payload"]["detections"][0]["confidence"] = 1.4
 
         with TestClient(app) as client:
-            response = client.post("/events", json=invalid_request)
+            token_response = client.post("/auth/token", data={"username": "admin", "password": "admin123"})
+            token = token_response.json()["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
+            response = client.post("/events", json=invalid_request, headers=headers)
             self.assertEqual(response.status_code, 422, response.text)
 
             body = response.json()
@@ -100,7 +108,7 @@ class GatewayDetectionEventIntegrationTests(unittest.TestCase):
             self.assertTrue(body["error"]["details"])
             self.assertIn("request_id", body)
 
-            list_response = client.get("/events")
+            list_response = client.get("/events", headers=headers)
             self.assertEqual(list_response.status_code, 200, list_response.text)
             self.assertEqual(list_response.json()["total"], 0)
 

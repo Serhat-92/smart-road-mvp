@@ -98,6 +98,9 @@
     "image_evidence_path": {
       "type": ["string", "null"]
     },
+    "plate_number": {
+      "type": ["string", "null"]
+    },
     "metadata": {
       "type": "object"
     }

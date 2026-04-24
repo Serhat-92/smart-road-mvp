@@ -25,6 +25,7 @@ class EventRead(StrictBaseModel):
     payload: dict[str, Any]
     occurred_at: datetime
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    plate_number: str | None = None
 
 
 class EventListResponse(StrictBaseModel):

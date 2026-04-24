@@ -23,6 +23,11 @@ from app.core.config import Settings
 class GatewayApiRuntimeIntegrationTests(unittest.TestCase):
     def test_health_devices_and_ingest_endpoints_work(self):
         with TestClient(app) as client:
+            token_response = client.post("/auth/token", data={"username": "admin", "password": "admin123"})
+            self.assertEqual(token_response.status_code, 200)
+            token = token_response.json()["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
             health_response = client.get("/health")
             self.assertEqual(health_response.status_code, 200, health_response.text)
 
@@ -40,6 +45,7 @@ class GatewayApiRuntimeIntegrationTests(unittest.TestCase):
                     "status": "active",
                     "metadata": {"zone": "north"},
                 },
+                headers=headers,
             )
             self.assertEqual(device_response.status_code, 201, device_response.text)
             self.assertEqual(device_response.json()["device_id"], "cam-operator-01")
@@ -54,6 +60,7 @@ class GatewayApiRuntimeIntegrationTests(unittest.TestCase):
                     "height": 1080,
                     "metadata": {"lane": 2},
                 },
+                headers=headers,
             )
             self.assertEqual(ingest_response.status_code, 202, ingest_response.text)
             ingest_body = ingest_response.json()
@@ -61,7 +68,7 @@ class GatewayApiRuntimeIntegrationTests(unittest.TestCase):
             self.assertTrue(ingest_body["known_device"])
             self.assertEqual(ingest_body["queue_status"], "queued")
 
-            devices_response = client.get("/devices")
+            devices_response = client.get("/devices", headers=headers)
             self.assertEqual(devices_response.status_code, 200, devices_response.text)
             devices_body = devices_response.json()
             self.assertEqual(devices_body["total"], 1)
@@ -101,6 +108,10 @@ class GatewayApiRuntimeIntegrationTests(unittest.TestCase):
 
     def test_ingest_validation_errors_return_structured_response(self):
         with TestClient(app) as client:
+            token_response = client.post("/auth/token", data={"username": "admin", "password": "admin123"})
+            token = token_response.json()["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
             response = client.post(
                 "/ingest/frame",
                 json={
@@ -109,6 +120,7 @@ class GatewayApiRuntimeIntegrationTests(unittest.TestCase):
                     "width": 1920,
                     "metadata": {"lane": 1},
                 },
+                headers=headers,
             )
 
             self.assertEqual(response.status_code, 422, response.text)

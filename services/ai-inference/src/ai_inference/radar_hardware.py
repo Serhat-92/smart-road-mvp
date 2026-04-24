@@ -11,9 +11,10 @@ import threading
 import time
 
 class RadarSensor:
-    def __init__(self, port, baudrate=19200):
+    def __init__(self, port, baudrate=19200, unit="kmh"):
         self.port = port
         self.baudrate = baudrate
+        self.unit = unit
         self.current_speed = 0.0
         self.is_running = False
         self.thread = None
@@ -55,12 +56,12 @@ class RadarSensor:
                 if line:
                     # Gelen veriyi parse etmeye çalış
                     try:
-                        # Eğer veri JSON değilse ve saf sayıysa:
-                        # Bazı sensörler m/s veya mph gönderebilir, birim dönüşümü gerekebilir.
-                        # Varsayım: Sensör km/s veya ayarlanabilir birim gönderiyor.
-                        # Eğer m/s geliyorsa 3.6 ile çarpılmalı.
-                        
+                        # Gelen değeri float'a çevir
                         val = float(line)
+                        
+                        # Eğer sensör birimi m/s (metre/saniye) ise km/s'ye çevir
+                        if self.unit == "ms":
+                            val = val * 3.6
                         
                         # Gürültü filtresi (0.1 altını yok say)
                         if val > 0.5:
@@ -82,8 +83,8 @@ class RadarSensor:
 
 class MockRadarSensor(RadarSensor):
     """Test amaçlı sanal radar sensörü."""
-    def __init__(self):
-        super().__init__("MOCK", 0)
+    def __init__(self, unit="kmh"):
+        super().__init__("MOCK", 0, unit=unit)
         
     def start(self):
         self.is_running = True

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from time import perf_counter
 from uuid import uuid4
@@ -26,6 +27,27 @@ async def lifespan(app: FastAPI):
     app.state.container = container
     await container.database.connect()
 
+    # ── Redis ViolationConsumer ─────────────────────────────────────
+    consumer = None
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        from app.workers.violation_consumer import ViolationConsumer
+
+        consumer = ViolationConsumer(redis_url=redis_url)
+        await consumer.start(
+            repo=container.event_service.repository,
+            db_manager=container.database,
+        )
+        logger.info(
+            "Redis ViolationConsumer started",
+            extra={"redis_url": redis_url},
+        )
+    else:
+        logger.warning(
+            "REDIS_URL env var not set — Redis ViolationConsumer not started. "
+            "Events will only be received via HTTP POST.",
+        )
+
     logger.info(
         "Gateway API started",
         extra={
@@ -38,6 +60,9 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        if consumer is not None:
+            await consumer.stop()
+            logger.info("Redis ViolationConsumer stopped")
         await container.database.disconnect()
         logger.info("Gateway API stopped", extra={"database_state": container.database.state})
 

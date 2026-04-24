@@ -45,6 +45,10 @@ export default function EventCard({ event }) {
           <dd>{formatTrackId(event.trackId)} · {event.trackLabel}</dd>
         </div>
         <div>
+          <dt>Plaka</dt>
+          <dd><strong>{event.plateNumber || "Tespit Edilemedi"}</strong></dd>
+        </div>
+        <div>
           <dt>Confidence</dt>
           <dd>{formatPercent(event.confidence)}</dd>
         </div>

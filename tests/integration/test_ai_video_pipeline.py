@@ -90,10 +90,11 @@ class VideoDetectionPipelineTests(unittest.TestCase):
         self.assertEqual(result.frames[0].frame.height, 240)
         self.assertIsNone(result.frames[0].detections[0].track_id)
 
-    def test_rtsp_sources_are_explicitly_rejected_for_now(self):
+    def test_rtsp_sources_are_now_supported(self):
         pipeline = VideoDetectionPipeline(detector=_FakeDetector())
-        with self.assertRaises(NotImplementedError):
-            pipeline.run(source="rtsp://camera-01/stream", sample_rate_fps=1.0)
+        source = pipeline.source_factory.create("rtsp://camera-01/stream")
+        self.assertEqual(source.__class__.__name__, "RTSPVideoSource")
+        self.assertEqual(source.source, "rtsp://camera-01/stream")
 
     def test_tracking_keeps_consistent_ids_across_sampled_frames(self):
         pipeline = VideoDetectionPipeline(detector=_FakeDetector())

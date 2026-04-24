@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, status
 
+from app.core.security import get_current_user
 from app.dependencies import get_device_service
 from app.schemas.common import APIErrorResponse
 from app.schemas.device import DeviceCreate, DeviceListResponse, DeviceRead
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/devices", tags=["devices"])
 )
 async def list_devices(
     service: DeviceService = Depends(get_device_service),
+    current_user: dict = Depends(get_current_user),
 ) -> DeviceListResponse:
     items = service.list_devices()
     return DeviceListResponse(items=items, total=len(items))
@@ -35,5 +37,6 @@ async def list_devices(
 async def create_device(
     payload: DeviceCreate,
     service: DeviceService = Depends(get_device_service),
+    current_user: dict = Depends(get_current_user),
 ) -> DeviceRead:
     return service.register_device(payload)
