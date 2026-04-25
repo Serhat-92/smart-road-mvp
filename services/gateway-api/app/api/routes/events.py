@@ -6,14 +6,14 @@ import logging
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 
 from app.core.errors import EventPayloadValidationError
 from app.core.security import get_current_user
 from app.dependencies import get_db_session, get_event_service, get_repository_mode
 from app.schemas.common import APIErrorResponse
-from app.schemas.event import EventCreate, EventListResponse, EventRead
+from app.schemas.event import EventCreate, EventListResponse, EventRead, EventStatusUpdate
 from app.services.event_service import EventService
 
 
@@ -90,6 +90,51 @@ async def create_event(
         )
 
     # Broadcast to WebSocket clients
+    _broadcast_event(event)
+
+    return event
+
+
+@router.patch(
+    "/{event_id}/status",
+    response_model=EventRead,
+    responses={
+        404: {"model": APIErrorResponse},
+        422: {"model": APIErrorResponse},
+    },
+)
+async def update_event_status(
+    event_id: str,
+    body: EventStatusUpdate,
+    service: EventService = Depends(get_event_service),
+    mode: Literal["postgres", "memory"] = Depends(get_repository_mode),
+    session=Depends(get_db_session),
+    current_user: dict = Depends(get_current_user),
+) -> EventRead:
+    """Update the operator workflow status of an event."""
+    repo = service.repository
+
+    if mode == "postgres" and session is not None:
+        updated = await repo.update_status_async(session, event_id, body.status)
+    else:
+        updated = repo.update_status(event_id, body.status)
+
+    if updated is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Event {event_id} not found",
+        )
+
+    event_read = EventRead(**updated)
+
+    # Broadcast status change to WebSocket clients
+    _broadcast_event(event_read)
+
+    return event_read
+
+
+def _broadcast_event(event):
+    """Best-effort broadcast of an event to connected WebSocket clients."""
     try:
         from app.api.routes.websocket import manager
         from app.core.pydantic import model_to_dict
@@ -97,5 +142,3 @@ async def create_event(
         asyncio.create_task(manager.broadcast(model_to_dict(event)))
     except Exception as exc:
         logger.warning("WebSocket broadcast failed: %s", exc)
-
-    return event

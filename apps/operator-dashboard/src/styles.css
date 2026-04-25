@@ -375,6 +375,18 @@ a {
   color: #b3ddff;
 }
 
+.tone-pending {
+  background: rgba(244, 173, 61, 0.14);
+  border-color: rgba(244, 173, 61, 0.28);
+  color: #ffd28f;
+}
+
+.filter-row .tone-active {
+  background: rgba(74, 176, 255, 0.28);
+  border-color: rgba(74, 176, 255, 0.5);
+  color: #d0eaff;
+}
+
 .table-shell {
   overflow: auto;
   padding: 0;

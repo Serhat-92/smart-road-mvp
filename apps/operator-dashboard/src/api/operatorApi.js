@@ -235,6 +235,7 @@ export function mapGatewayEvent(event) {
     evidenceAvailable: Boolean(evidencePath),
     sourceService: payload?.source_service || null,
     plateNumber: payload?.plate_number || null,
+    operatorStatus: event.operator_status ?? payload?.operator_status ?? "pending",
     rawEvent: event,
   };
 }
@@ -358,4 +359,38 @@ export async function getLiveStreams() {
   return unwrapItems(payload)
     .map((device) => mapGatewayDevice(device))
     .map((device) => mapDeviceToStream(device));
+}
+
+export async function updateEventStatus(eventId, status) {
+  const url = new URL(`/events/${eventId}/status`, apiConfig.apiBaseUrl);
+
+  const headers = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+
+  const token = window.localStorage.getItem("auth_token");
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ status }),
+  });
+
+  if (response.status === 401) {
+    window.localStorage.removeItem("auth_token");
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+    throw new Error("Authentication required");
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to update event status: ${response.status}`);
+  }
+
+  return response.json();
 }

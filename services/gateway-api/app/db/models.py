@@ -38,6 +38,9 @@ class EventRecord(Base):
     image_evidence_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     plate_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    operator_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

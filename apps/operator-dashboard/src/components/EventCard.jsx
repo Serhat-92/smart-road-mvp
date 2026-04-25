@@ -1,5 +1,7 @@
+import { useState } from "react";
 import StatusPill from "./StatusPill";
 import EvidencePreview from "./EvidencePreview";
+import { updateEventStatus } from "../api/operatorApi";
 import {
   formatEventType,
   formatPercent,
@@ -8,7 +10,40 @@ import {
   formatTrackId,
 } from "../lib/formatters";
 
-export default function EventCard({ event }) {
+const STATUS_CONFIG = {
+  pending: { label: "Beklemede", tone: "warning" },
+  reviewed: { label: "İncelendi", tone: "valid" },
+  dismissed: { label: "Geçersiz", tone: "neutral" },
+};
+
+export default function EventCard({ event, onStatusChange }) {
+  const [operatorStatus, setOperatorStatus] = useState(
+    event.operatorStatus || "pending",
+  );
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const statusInfo = STATUS_CONFIG[operatorStatus] || STATUS_CONFIG.pending;
+
+  async function handleStatusUpdate(newStatus) {
+    const previousStatus = operatorStatus;
+    // Optimistic update
+    setOperatorStatus(newStatus);
+    setIsUpdating(true);
+
+    try {
+      await updateEventStatus(event.eventId, newStatus);
+      if (onStatusChange) {
+        onStatusChange(event.eventId, newStatus);
+      }
+    } catch (err) {
+      console.error("Failed to update event status:", err);
+      // Rollback on error
+      setOperatorStatus(previousStatus);
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
   return (
     <article className="panel event-card">
       <div className="panel-header">
@@ -17,7 +52,10 @@ export default function EventCard({ event }) {
           <h3>{event.location}</h3>
           <p className="muted-copy event-time">{formatTimestamp(event.timestamp)}</p>
         </div>
-        <StatusPill tone={event.priority}>{event.priority}</StatusPill>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <StatusPill tone={statusInfo.tone}>{statusInfo.label}</StatusPill>
+          <StatusPill tone={event.priority}>{event.priority}</StatusPill>
+        </div>
       </div>
 
       <div className="event-scoreboard">
@@ -61,8 +99,30 @@ export default function EventCard({ event }) {
       <EvidencePreview event={event} />
 
       <footer className="panel-footer">
-        <span className="mono-label">Status</span>
-        <strong>{event.status}</strong>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span className="mono-label">Status</span>
+          <strong>{event.status}</strong>
+        </div>
+        {operatorStatus === "pending" && (
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              className="status-pill tone-valid"
+              style={{ cursor: "pointer", fontSize: "0.75rem" }}
+              disabled={isUpdating}
+              onClick={() => handleStatusUpdate("reviewed")}
+            >
+              ✓ İncelendi
+            </button>
+            <button
+              className="status-pill tone-neutral"
+              style={{ cursor: "pointer", fontSize: "0.75rem" }}
+              disabled={isUpdating}
+              onClick={() => handleStatusUpdate("dismissed")}
+            >
+              ✗ Geçersiz
+            </button>
+          </div>
+        )}
       </footer>
     </article>
   );

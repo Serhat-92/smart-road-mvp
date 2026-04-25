@@ -26,6 +26,11 @@ class EventRead(StrictBaseModel):
     occurred_at: datetime
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     plate_number: str | None = None
+    operator_status: str = "pending"
+
+
+class EventStatusUpdate(StrictBaseModel):
+    status: Literal["pending", "reviewed", "dismissed"]
 
 
 class EventListResponse(StrictBaseModel):

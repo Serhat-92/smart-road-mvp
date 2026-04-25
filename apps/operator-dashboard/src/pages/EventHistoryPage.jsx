@@ -9,8 +9,16 @@ import { formatTimestamp } from "../lib/formatters";
 
 const EVENT_REFRESH_INTERVAL_MS = 5000;
 
+const STATUS_FILTERS = [
+  { key: "all", label: "Tümü" },
+  { key: "pending", label: "Beklemede" },
+  { key: "reviewed", label: "İncelendi" },
+  { key: "dismissed", label: "Geçersiz" },
+];
+
 export default function EventHistoryPage() {
   const [query, setQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const deferredQuery = useDeferredValue(query);
   const { data, error, isLoading, isRefreshing, lastUpdatedAt } = useAsyncResource(
     () => getEventHistory(),
@@ -29,6 +37,12 @@ export default function EventHistoryPage() {
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const filteredItems =
     data?.filter((item) => {
+      // Status filter
+      if (selectedStatus !== "all" && item.operatorStatus !== selectedStatus) {
+        return false;
+      }
+
+      // Text search
       if (!normalizedQuery) {
         return true;
       }
@@ -57,6 +71,23 @@ export default function EventHistoryPage() {
             placeholder="Search event id, device, or location"
             value={query}
           />
+        </div>
+        <div className="filter-row" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              className={`status-pill ${selectedStatus === f.key ? "tone-active" : "tone-neutral"}`}
+              style={{
+                cursor: "pointer",
+                fontSize: "0.78rem",
+                opacity: selectedStatus === f.key ? 1 : 0.6,
+                fontWeight: selectedStatus === f.key ? 700 : 400,
+              }}
+              onClick={() => setSelectedStatus(f.key)}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
         <EmptyState
           title="No history matches"
@@ -110,6 +141,24 @@ export default function EventHistoryPage() {
           placeholder="Search event id, device, type, track, or location"
           value={query}
         />
+      </div>
+
+      <div className="filter-row" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        {STATUS_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            className={`status-pill ${selectedStatus === f.key ? "tone-active" : "tone-neutral"}`}
+            style={{
+              cursor: "pointer",
+              fontSize: "0.78rem",
+              opacity: selectedStatus === f.key ? 1 : 0.6,
+              fontWeight: selectedStatus === f.key ? 700 : 400,
+            }}
+            onClick={() => setSelectedStatus(f.key)}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       <section className="section-heading">
