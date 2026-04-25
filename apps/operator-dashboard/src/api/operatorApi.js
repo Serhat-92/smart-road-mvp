@@ -394,3 +394,23 @@ export async function updateEventStatus(eventId, status) {
 
   return response.json();
 }
+
+export async function getEventStats() {
+  if (apiConfig.useMockApi) {
+    return withMock(() => ({
+      total_events: 100,
+      pending_count: 5,
+      reviewed_count: 80,
+      dismissed_count: 15,
+      critical_count: 10,
+      warning_count: 20,
+      info_count: 70,
+      avg_radar_speed: 85.5,
+      avg_estimated_speed: 82.0,
+      top_cameras: [{ camera_id: "cam-01", count: 40 }, { camera_id: "cam-02", count: 25 }],
+      events_last_hour: 12
+    }));
+  }
+
+  return requestJson("/events/stats");
+}

@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 const navigationItems = [
   { label: "Active Events", to: "/events/active" },
   { label: "Event History", to: "/events/history" },
+  { label: "İstatistikler", to: "/statistics" },
   { label: "Device Status", to: "/devices" },
   { label: "Live Stream", to: "/live" },
 ];

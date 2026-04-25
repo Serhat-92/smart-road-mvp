@@ -36,3 +36,22 @@ class EventStatusUpdate(StrictBaseModel):
 class EventListResponse(StrictBaseModel):
     items: list[EventRead]
     total: int
+
+
+class CameraStats(StrictBaseModel):
+    camera_id: str
+    count: int
+
+
+class EventStats(StrictBaseModel):
+    total_events: int
+    pending_count: int
+    reviewed_count: int
+    dismissed_count: int
+    critical_count: int
+    warning_count: int
+    info_count: int
+    avg_radar_speed: float | None
+    avg_estimated_speed: float | None
+    top_cameras: list[CameraStats]
+    events_last_hour: int

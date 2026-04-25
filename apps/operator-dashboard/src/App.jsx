@@ -7,6 +7,7 @@ import DeviceStatusPage from "./pages/DeviceStatusPage";
 import EventHistoryPage from "./pages/EventHistoryPage";
 import LiveStreamPage from "./pages/LiveStreamPage";
 import LoginPage from "./pages/LoginPage";
+import StatisticsPage from "./pages/StatisticsPage";
 
 function AuthGuard({ children }) {
   const token = window.localStorage.getItem("auth_token");
@@ -27,6 +28,7 @@ export default function App() {
               <Route path="/" element={<Navigate to="/events/active" replace />} />
               <Route path="/events/active" element={<ActiveEventsPage />} />
               <Route path="/events/history" element={<EventHistoryPage />} />
+              <Route path="/statistics" element={<StatisticsPage />} />
               <Route path="/devices" element={<DeviceStatusPage />} />
               <Route path="/live" element={<LiveStreamPage />} />
               <Route path="*" element={<Navigate to="/events/active" replace />} />

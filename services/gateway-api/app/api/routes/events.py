@@ -13,7 +13,7 @@ from app.core.errors import EventPayloadValidationError
 from app.core.security import get_current_user
 from app.dependencies import get_db_session, get_event_service, get_repository_mode
 from app.schemas.common import APIErrorResponse
-from app.schemas.event import EventCreate, EventListResponse, EventRead, EventStatusUpdate
+from app.schemas.event import EventCreate, EventListResponse, EventRead, EventStatusUpdate, EventStats
 from app.services.event_service import EventService
 
 
@@ -38,6 +38,24 @@ async def list_events(
     else:
         items = service.list_events()
     return EventListResponse(items=items, total=len(items))
+
+
+@router.get(
+    "/stats",
+    response_model=EventStats,
+    responses={500: {"model": APIErrorResponse}},
+)
+async def get_events_stats(
+    service: EventService = Depends(get_event_service),
+    mode: Literal["postgres", "memory"] = Depends(get_repository_mode),
+    session=Depends(get_db_session),
+    current_user: dict = Depends(get_current_user),
+) -> EventStats:
+    if mode == "postgres" and session is not None:
+        stats = await service.get_stats_async(session)
+    else:
+        stats = service.get_stats()
+    return stats
 
 
 @router.post(

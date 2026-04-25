@@ -47,7 +47,12 @@ working local flow:
 - WebSocket real-time event push to operator dashboard.
 - JWT authentication (Bearer token) for all protected endpoints.
 - Radar hardware integration (MockRadarSensor and RadarSensor).
-
+- Camera calibration module for configurable pixels-per-meter scaling.
+- Multi-camera parallel demo script (scripts/run_multicam_demo.py).
+- Operator workflow status (pending / reviewed / dismissed) per event.
+- Event statistics API endpoint (GET /events/stats).
+- Statistics dashboard page with per-camera breakdown.
+- Docker production build with automatic Alembic migrations on startup.
 ### Simulated Or Approximate
 
 - Radar data is simulated or manually supplied with `--radar-speed`; no real radar
@@ -60,9 +65,11 @@ working local flow:
 
 ### Planned
 
-- Add calibrated speed estimation and radar correction.
-- Add event acknowledgement and operator workflow states.
-- Improve Docker production images and deployment configuration.
+- YOLOv8 fine-tuning with Turkish road dataset for higher accuracy.
+- Real RTSP stream continuous processing workers.
+- Production-grade deployment with HTTPS and reverse proxy.
+- Role-based access control (admin / operator / viewer).
+- Email or SMS notification on critical violations.
 
 ## Architecture Summary
 
@@ -80,11 +87,11 @@ speed.violation_alert event + evidence image
       |
       v
 services/gateway-api
-  JWT auth → PostgreSQL persistence → WebSocket broadcast
+  JWT auth → PostgreSQL persistence → Statistics API
       |
       v
 apps/operator-dashboard
-  Real-time WebSocket feed + evidence image display
+  Real-time WebSocket feed + evidence image display + Operator Workflow
 ```
 
 ## Service List
