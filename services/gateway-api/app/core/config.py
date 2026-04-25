@@ -43,6 +43,9 @@ class Settings:
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440  # 24 hours
 
+    gateway_admin_user: str = "admin"
+    gateway_admin_password: str = "admin123"
+
     @property
     def postgres_dsn(self) -> str:
         return (
@@ -69,6 +72,8 @@ def get_settings() -> Settings:
         jwt_secret_key=os.getenv("GATEWAY_JWT_SECRET_KEY", "smart-road-mvp-dev-secret"),
         jwt_algorithm=os.getenv("GATEWAY_JWT_ALGORITHM", "HS256"),
         jwt_expire_minutes=int(os.getenv("GATEWAY_JWT_EXPIRE_MINUTES", "1440")),
+        gateway_admin_user=os.getenv("GATEWAY_ADMIN_USER", "admin"),
+        gateway_admin_password=os.getenv("GATEWAY_ADMIN_PASSWORD", "admin123"),
         version=os.getenv("GATEWAY_API_VERSION", "0.1.0"),
         environment=os.getenv("GATEWAY_API_ENV", "development"),
         ws_enabled=os.getenv("GATEWAY_WS_ENABLED", "true").lower() == "true",

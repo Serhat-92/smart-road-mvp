@@ -16,7 +16,7 @@ export default function ActiveEventsPage() {
   );
 
   const [events, setEvents] = useState([]);
-  const { data: wsEvent, isConnected: isWsConnected } = useWebSocket("/ws/events");
+  const { data: wsEvent, isConnected: isWsConnected, connectionStatus } = useWebSocket("/ws/events");
 
   // Fallback polling if WS disconnected
   const { data: polledData, isRefreshing, lastUpdatedAt } = useAsyncResource(
@@ -105,7 +105,9 @@ export default function ActiveEventsPage() {
           <p className="eyebrow">Near Real Time</p>
           <h3>Active gateway events</h3>
           <p className="muted-copy">
-            {isWsConnected ? "Live via WebSocket" : `Refreshes every ${EVENT_REFRESH_INTERVAL_MS / 1000}s`}
+            {connectionStatus === "connected" && "🟢 Gerçek zamanlı bağlantı aktif"}
+            {connectionStatus === "polling" && "🟡 Polling gateway events"}
+            {connectionStatus === "reconnecting" && "🔴 Yeniden bağlanıyor..."}
             {!isWsConnected && lastUpdatedAt ? ` · last update ${formatTimestamp(lastUpdatedAt)}` : ""}
             {!isWsConnected && isRefreshing ? " · refreshing..." : ""}
           </p>

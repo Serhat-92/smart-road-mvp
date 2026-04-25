@@ -40,6 +40,13 @@ working local flow:
 - Dockerfiles and `infra/docker-compose.yml` for local service startup.
 - Integration tests for gateway, inference API, video pipeline, event contracts,
   evidence generation, and fallback behavior.
+- PostgreSQL async persistence with SQLAlchemy and asyncpg.
+- Redis pub/sub event queue with HTTP fallback.
+- RTSP camera stream support with reconnect logic.
+- License plate OCR with EasyOCR (lazy-load).
+- WebSocket real-time event push to operator dashboard.
+- JWT authentication (Bearer token) for all protected endpoints.
+- Radar hardware integration (MockRadarSensor and RadarSensor).
 
 ### Simulated Or Approximate
 
@@ -47,48 +54,38 @@ working local flow:
   hardware is connected in the MVP flow.
 - Speed estimation is approximate and based on image-space movement. It is useful
   for a demo, not for legal or calibrated enforcement.
-- PostgreSQL and Redis are started by Docker Compose, but application persistence
-  is still in memory.
-- RTSP support is structured for future work, but the working MVP prioritizes
-  local video files.
 - The live stream dashboard page is a placeholder.
 - The command center app is a legacy/prototype upload receiver, not the main MVP
   event dashboard.
 
 ### Planned
 
-- Replace in-memory repositories with real PostgreSQL persistence.
-- Use Redis or another queue for event buffering and background processing.
-- Add real RTSP stream processing workers.
 - Add calibrated speed estimation and radar correction.
-- Connect actual radar hardware input.
 - Add event acknowledgement and operator workflow states.
-- Add authentication, authorization, and deployment-grade security.
 - Improve Docker production images and deployment configuration.
 
 ## Architecture Summary
 
 ```text
-Local video file
+Local video / RTSP camera
       |
       v
 services/ai-inference
-  YOLO detection -> simple tracking -> approximate speed estimate
+  YOLOv8 detection → tracking → speed estimation → plate OCR
       |
       v
-speed.violation_alert event + annotated evidence image
+speed.violation_alert event + evidence image
+      |
+  Redis pub/sub (HTTP fallback)
       |
       v
 services/gateway-api
-  validates event contract -> stores in memory
+  JWT auth → PostgreSQL persistence → WebSocket broadcast
       |
       v
 apps/operator-dashboard
-  polls /events -> displays event details and evidence image
+  Real-time WebSocket feed + evidence image display
 ```
-
-The MVP uses direct HTTP calls between the inference pipeline and gateway API.
-There is no message broker in the active local demo path yet.
 
 ## Service List
 
@@ -233,6 +230,18 @@ $env:POSTGRES_ENABLED='false'
 python services/gateway-api/main.py
 ```
 
+#### PostgreSQL ile başlatmak için (opsiyonel):
+
+```powershell
+copy infra\.env.example infra\.env
+$env:POSTGRES_ENABLED='true'
+$env:POSTGRES_HOST='127.0.0.1'
+$env:POSTGRES_USER='postgres'
+$env:POSTGRES_PASSWORD='postgres'
+$env:POSTGRES_DB='gateway_api'
+python services/gateway-api/main.py
+```
+
 Check it:
 
 ```powershell
@@ -259,7 +268,7 @@ http://127.0.0.1:5173
 Open a third PowerShell terminal from the repository root:
 
 ```powershell
-python scripts/run_local_mvp_demo.py
+python scripts/run_local_mvp_demo.py --gateway-user admin --gateway-password admin123
 ```
 
 The default demo uses:
@@ -271,10 +280,20 @@ The default demo uses:
 The speed limit is intentionally low so the short sample video creates a visible
 event during local testing.
 
-Check stored events:
+> **Not:** Demo artık JWT token gerektirmektedir. `--gateway-user` ve
+> `--gateway-password` parametreleri ile token otomatik olarak alınır.
+> Alternatif olarak `--api-token` ile doğrudan token verilebilir.
+
+Check stored events (JWT token gerekli):
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:8080/events
+# Önce token al
+$token = (Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8080/auth/token `
+  -Body @{username="admin"; password="admin123"}).access_token
+
+# Eventleri listele
+Invoke-RestMethod -Uri http://127.0.0.1:8080/events `
+  -Headers @{Authorization="Bearer $token"}
 ```
 
 Evidence images are written to:
@@ -286,9 +305,9 @@ datasets/evidence/
 Useful demo options:
 
 ```powershell
-python scripts/run_local_mvp_demo.py --speed-limit 70 --max-frames 20
-python scripts/run_local_mvp_demo.py --radar-speed 82.5
-python scripts/run_local_mvp_demo.py --camera-id demo-cam-02 --sample-rate-fps 5
+python scripts/run_local_mvp_demo.py --speed-limit 70 --max-frames 20 --gateway-user admin --gateway-password admin123
+python scripts/run_local_mvp_demo.py --radar-speed 82.5 --gateway-user admin --gateway-password admin123
+python scripts/run_local_mvp_demo.py --radar-mock --video datasets/samples/bus-sample.mp4 --gateway-user admin --gateway-password admin123
 python scripts/run_local_mvp_demo.py --allow-offline-gateway
 ```
 
@@ -338,17 +357,23 @@ cd apps/operator-dashboard
 npm run build
 ```
 
+## Güvenlik Notu
+
+> **Uyarı:** Varsayılan operatör giriş bilgileri `admin` / `admin123` olarak
+> ayarlanmıştır. Bu değerler yalnızca geliştirme ve demo amaçlıdır.
+> Production ortamında aşağıdaki environment değişkenlerini mutlaka değiştirin:
+>
+> ```
+> GATEWAY_ADMIN_USER=<güvenli_kullanıcı_adı>
+> GATEWAY_ADMIN_PASSWORD=<güçlü_şifre>
+> GATEWAY_JWT_SECRET_KEY=<rastgele_uzun_anahtar>
+> ```
+
 ## Known Limitations
 
-- Events are lost when the gateway process restarts because storage is in memory.
 - Speed values are approximate and not calibrated.
-- The MVP does not identify license plates.
-- Real radar hardware is not integrated into the demo path.
-- RTSP streams are not processed continuously yet.
-- The dashboard polls the backend; it does not use WebSockets.
 - Evidence images are served locally by the Vite dev/preview server for demo use.
 - Docker images are for local development, not hardened production deployment.
-- There is no authentication or role-based access control.
 - Error handling is suitable for local MVP testing, not full production operations.
 
 ## What To Demo

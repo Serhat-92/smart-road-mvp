@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Literal
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 
+from app.core.errors import EventPayloadValidationError
 from app.core.security import get_current_user
 from app.dependencies import get_db_session, get_event_service, get_repository_mode
 from app.schemas.common import APIErrorResponse
@@ -59,6 +61,22 @@ async def create_event(
             event = await service.create_event_async(payload, session)
         else:
             event = service.create_event(payload)
+    except EventPayloadValidationError as exc:
+        logger.warning(
+            "Event payload validation failed: %s",
+            exc,
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": {
+                    "code": exc.code,
+                    "message": exc.message,
+                    "details": exc.details,
+                },
+                "request_id": str(uuid.uuid4()),
+            },
+        )
     except Exception as exc:
         logger.error(
             "Failed to create event: %s: %s",

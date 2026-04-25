@@ -17,6 +17,10 @@ ai_inference_root_str = str(AI_INFERENCE_ROOT)
 if ai_inference_root_str not in sys.path:
     sys.path.insert(0, ai_inference_root_str)
 
+ai_inference_src_str = str(AI_INFERENCE_ROOT / "src")
+if ai_inference_src_str not in sys.path:
+    sys.path.insert(0, ai_inference_src_str)
+
 from service_api import create_app
 from src.ai_inference.utils import (
     BoundingBox,

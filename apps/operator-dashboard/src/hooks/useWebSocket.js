@@ -1,16 +1,28 @@
 import { useEffect, useState, useRef } from "react";
 import { apiConfig } from "../api/operatorApi";
 
+/**
+ * WebSocket hook with connection status tracking.
+ *
+ * Returns:
+ *   - data: last parsed message
+ *   - isConnected: true when the socket is open
+ *   - connectionStatus: "connected" | "polling" | "reconnecting"
+ *   - error: last error event (if any)
+ */
 export function useWebSocket(path, options = {}) {
   const { enabled = true, reconnectIntervalMs = 3000 } = options;
   const [data, setData] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("polling"); // "connected" | "polling" | "reconnecting"
   const [error, setError] = useState(null);
   const ws = useRef(null);
   const reconnectTimer = useRef(null);
+  const hasConnectedBefore = useRef(false);
 
   useEffect(() => {
     if (!enabled || apiConfig.useMockApi) {
+      setConnectionStatus("polling");
       return;
     }
 
@@ -24,7 +36,9 @@ export function useWebSocket(path, options = {}) {
 
       ws.current.onopen = () => {
         setIsConnected(true);
+        setConnectionStatus("connected");
         setError(null);
+        hasConnectedBefore.current = true;
         if (reconnectTimer.current) {
           clearTimeout(reconnectTimer.current);
           reconnectTimer.current = null;
@@ -43,6 +57,8 @@ export function useWebSocket(path, options = {}) {
       ws.current.onclose = () => {
         setIsConnected(false);
         ws.current = null;
+        // If we had a connection before, show "reconnecting", otherwise "polling"
+        setConnectionStatus(hasConnectedBefore.current ? "reconnecting" : "polling");
         // Schedule reconnect
         reconnectTimer.current = setTimeout(connect, reconnectIntervalMs);
       };
@@ -65,5 +81,5 @@ export function useWebSocket(path, options = {}) {
     };
   }, [path, enabled, reconnectIntervalMs]);
 
-  return { data, isConnected, error };
+  return { data, isConnected, connectionStatus, error };
 }
