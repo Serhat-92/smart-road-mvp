@@ -70,6 +70,11 @@ export default function ActiveEventsPage() {
   const averageConfidence = Math.round(
     (events.reduce((sum, item) => sum + item.confidence, 0) / Math.max(events.length, 1)) * 100,
   );
+  const pendingCount = events.filter((item) => item.operatorStatus === "pending").length;
+  const eventsWithRadar = events.filter((item) => typeof item.radarSpeed === "number");
+  const averageRadarSpeed = eventsWithRadar.length > 0
+    ? Math.round(eventsWithRadar.reduce((sum, item) => sum + item.radarSpeed, 0) / eventsWithRadar.length)
+    : 0;
 
   return (
     <div className="page-stack">
@@ -97,6 +102,18 @@ export default function ActiveEventsPage() {
           value={`${averageConfidence}%`}
           hint="Confidence of active fusion decisions in the queue."
           accent="green"
+        />
+        <MetricCard
+          label="BEKLEYEN İNCELEME"
+          value={pendingCount}
+          hint="Henüz incelenmemiş ihlal sayısı."
+          accent="amber"
+        />
+        <MetricCard
+          label="ORT. RADAR HIZI"
+          value={eventsWithRadar.length > 0 ? `${averageRadarSpeed} km/h` : "N/A"}
+          hint="Tespit edilen araçların ortalama radar hızı."
+          accent="blue"
         />
       </section>
 

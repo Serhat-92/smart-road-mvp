@@ -7,6 +7,7 @@ import math
 import statistics
 import time
 
+from ..pipelines.camera_calibration import CameraCalibration
 from ..utils import BoundingBox, DetectionRecord, SpeedEstimate
 
 
@@ -34,12 +35,14 @@ class ApproximateSpeedEstimator:
         smoothing_window: int = 5,
         max_missed_frames: int = 4,
         max_reasonable_speed_kmh: float = 300.0,
+        calibration: CameraCalibration | None = None,
     ):
         self.calibration_factor = float(calibration_factor)
         self.history_size = int(history_size)
         self.smoothing_window = int(smoothing_window)
         self.max_missed_frames = int(max_missed_frames)
         self.max_reasonable_speed_kmh = float(max_reasonable_speed_kmh)
+        self.calibration = calibration
         self._track_states: dict[int, _SpeedTrackState] = {}
 
     def reset(self) -> None:
@@ -112,8 +115,14 @@ class ApproximateSpeedEstimator:
 
         pixel_distance = math.dist(first_centroid, last_centroid)
         reference_height = max((first_height + last_height) / 2.0, 1.0)
-        normalized_motion = pixel_distance / reference_height
-        relative_speed_kmh = (normalized_motion / delta_time) * self.calibration_factor
+        
+        if self.calibration is not None:
+            relative_speed_kmh = self.calibration.estimate_speed_kmh(pixel_distance, delta_time)
+            if relative_speed_kmh is None:
+                return None
+        else:
+            normalized_motion = pixel_distance / reference_height
+            relative_speed_kmh = (normalized_motion / delta_time) * self.calibration_factor
 
         if pixel_distance < 0.5:
             return 0.0
@@ -141,9 +150,10 @@ class ApproximateSpeedEstimator:
 class SpeedEstimator:
     """Backward-compatible wrapper used by the radar-oriented frame pipeline."""
 
-    def __init__(self, speed_factor=36.0):
+    def __init__(self, speed_factor=36.0, calibration: CameraCalibration | None = None):
         self.approximate_estimator = ApproximateSpeedEstimator(
-            calibration_factor=speed_factor
+            calibration_factor=speed_factor,
+            calibration=calibration,
         )
         self.captured_track_ids: set[int] = set()
 

@@ -23,9 +23,10 @@ class AIInferenceService:
         fusion_engine=None,
         model_path="yolov8n.pt",
         speed_factor=36.0,
+        calibration=None,
     ):
         self.detector = detector or VehicleDetector(model_path=model_path)
-        self.tracker = tracker or SpeedEstimator(speed_factor=speed_factor)
+        self.tracker = tracker or SpeedEstimator(speed_factor=speed_factor, calibration=calibration)
         self.fusion_engine = fusion_engine or RadarFusionEngine()
         self.radar_event_fusion = RadarEventFusion()
         self.pipeline = VehicleInferencePipeline(
@@ -37,7 +38,8 @@ class AIInferenceService:
         self.video_pipeline = VideoDetectionPipeline(
             detector=self.detector,
             speed_estimator_factory=lambda: ApproximateSpeedEstimator(
-                calibration_factor=speed_factor
+                calibration_factor=speed_factor,
+                calibration=calibration,
             ),
         )
 

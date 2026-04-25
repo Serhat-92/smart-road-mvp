@@ -75,6 +75,23 @@ def parse_args() -> argparse.Namespace:
         help="Approximate computer-vision speed calibration factor.",
     )
     parser.add_argument(
+        "--pixels-per-meter",
+        type=float,
+        default=20.0,
+        help="Kameranın çektiği alanda 1 metreye karşılık gelen piksel sayısı.",
+    )
+    parser.add_argument(
+        "--camera-height",
+        type=float,
+        default=5.0,
+        help="Kamera montaj yüksekliği (metre).",
+    )
+    parser.add_argument(
+        "--use-calibration",
+        action="store_true",
+        help="Verilirse CameraCalibration kullanılır, verilmezse eski speed_factor yöntemi.",
+    )
+    parser.add_argument(
         "--radar-speed",
         type=float,
         default=None,
@@ -219,10 +236,20 @@ def main() -> int:
     else:
         print("Gateway API unavailable; continuing because --allow-offline-gateway was set.")
 
+    from ai_inference.pipelines.camera_calibration import CameraCalibration
+
+    calibration = None
+    if args.use_calibration:
+        calibration = CameraCalibration(
+            pixels_per_meter=args.pixels_per_meter,
+            camera_height_m=args.camera_height,
+        )
+
     print(f"Loading model: {model_path}")
     service = AIInferenceService(
         model_path=str(model_path),
         speed_factor=args.speed_factor,
+        calibration=calibration,
     )
 
     api_token = args.api_token
