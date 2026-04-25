@@ -2,7 +2,8 @@ FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app/services/ai-inference:/app/services/ai-inference/src
+    PYTHONPATH=/app/services/ai-inference:/app/services/ai-inference/src \
+    EASYOCR_MODULE_PATH=/app/.EasyOCR
 
 WORKDIR /app
 

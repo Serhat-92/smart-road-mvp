@@ -311,29 +311,41 @@ python scripts/run_local_mvp_demo.py --radar-mock --video datasets/samples/bus-s
 python scripts/run_local_mvp_demo.py --allow-offline-gateway
 ```
 
-## Run Services With Docker Compose
+## Docker Compose ile Tam Sistem
 
-Docker Compose is useful for checking container startup and service wiring.
+### Gereksinimler
+- Docker Desktop çalışıyor olmalı
+- yolov8n.pt dosyası repo kökünde olmalı
 
+### Başlatma (tek komut)
 ```powershell
 copy infra\.env.example infra\.env
 docker compose --env-file infra/.env -f infra/docker-compose.yml up --build
 ```
 
-Expected local URLs:
+### Erişim
+- Operatör Panosu : http://localhost:5173
+- Gateway API     : http://localhost:8080/health
+- AI Inference    : http://localhost:8090/health
 
-- Gateway API: `http://127.0.0.1:8080/health`
-- AI inference API: `http://127.0.0.1:8090/health`
-- Operator dashboard: `http://127.0.0.1:5173`
+Not: İlk build easyocr modeli indireceğinden 5-10 dakika sürebilir.
 
-Note: Compose starts PostgreSQL and Redis, but the gateway repositories still use
-in-memory storage in the current MVP.
-
-The command center prototype is not part of the default MVP stack. Start it only
-when needed:
-
+### Demo Komutu (Docker dışında, lokal)
 ```powershell
-docker-compose -f infra/docker-compose.yml --profile legacy up --build
+$env:PYTHONPATH="services\ai-inference\src;shared\event-contracts\python;shared\python"
+$response = Invoke-RestMethod -Uri "http://127.0.0.1:8080/auth/token" `
+  -Method Post -ContentType "application/x-www-form-urlencoded" `
+  -Body "username=admin&password=admin123"
+$token = $response.access_token
+python scripts/run_local_mvp_demo.py `
+  --radar-mock `
+  --video datasets\samples\bus-sample.mp4 `
+  --api-token $token
+```
+
+### Durdurma
+```powershell
+docker compose --env-file infra/.env -f infra/docker-compose.yml down
 ```
 
 ## Run Tests

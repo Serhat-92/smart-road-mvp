@@ -10,6 +10,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 # Add gateway-api to the path so we can import models
+sys.path.insert(0, "/app/services/gateway-api")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "services", "gateway-api"))
 
 from app.db.models import Base  # noqa: E402
@@ -24,11 +25,11 @@ target_metadata = Base.metadata
 
 def _build_sync_dsn() -> str:
     """Build a synchronous PostgreSQL DSN from environment variables."""
-    user = os.getenv("POSTGRES_USER", "postgres")
-    password = os.getenv("POSTGRES_PASSWORD", "postgres")
     host = os.getenv("POSTGRES_HOST", "localhost")
     port = os.getenv("POSTGRES_PORT", "5432")
     db = os.getenv("POSTGRES_DB", "gateway_api")
+    user = os.getenv("POSTGRES_USER", "postgres")
+    password = os.getenv("POSTGRES_PASSWORD", "postgres")
     return f"postgresql://{user}:{password}@{host}:{port}/{db}"
 
 

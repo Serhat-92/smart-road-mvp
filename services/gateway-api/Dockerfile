@@ -10,9 +10,13 @@ RUN pip install --upgrade pip && pip install -r /tmp/requirements.txt
 
 COPY shared /app/shared
 COPY services/gateway-api /app/services/gateway-api
+COPY infra /app/infra
+
+COPY services/gateway-api/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 WORKDIR /app/services/gateway-api
 
 EXPOSE 8080
 
-CMD ["python", "main.py"]
+CMD ["/app/entrypoint.sh"]
