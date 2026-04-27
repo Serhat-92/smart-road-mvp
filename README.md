@@ -46,12 +46,15 @@ working local flow:
 - License plate OCR with EasyOCR (lazy-load).
 - WebSocket real-time event push to operator dashboard.
 - JWT authentication (Bearer token) for all protected endpoints.
+- Model info endpoint (`GET /model/info`) on the AI inference service.
 - Radar hardware integration (MockRadarSensor and RadarSensor).
 - Camera calibration module for configurable pixels-per-meter scaling.
 - Multi-camera parallel demo script (scripts/run_multicam_demo.py).
 - Operator workflow status (pending / reviewed / dismissed) per event.
 - Event statistics API endpoint (GET /events/stats).
 - Statistics dashboard page with per-camera breakdown.
+- System health check script (`scripts/check_system.py`).
+- Enhanced demo performance summary with confidence metrics.
 - Docker production build with automatic Alembic migrations on startup.
 ### Simulated Or Approximate
 
@@ -131,6 +134,7 @@ Implemented capabilities:
 Useful endpoints when running `service_api.py`:
 
 - `GET /health`
+- `GET /model/info`
 - `POST /frame/analyze`
 - `POST /frame/analyze/base64`
 - `POST /video/analyze`
@@ -318,6 +322,19 @@ python scripts/run_local_mvp_demo.py --radar-mock --video datasets/samples/bus-s
 python scripts/run_local_mvp_demo.py --allow-offline-gateway
 ```
 
+Quick system check:
+
+```powershell
+python scripts/check_system.py
+python scripts/check_system.py --gateway-url http://127.0.0.1:8080 --inference-url http://127.0.0.1:8090
+```
+
+Model evaluation script:
+
+```powershell
+python notebooks/model_evaluation.py
+```
+
 ## Docker Compose ile Tam Sistem
 
 ### Gereksinimler
@@ -374,6 +391,18 @@ Build the dashboard:
 ```powershell
 cd apps/operator-dashboard
 npm run build
+```
+
+Run the system check script:
+
+```powershell
+python scripts/check_system.py
+```
+
+Run the model evaluation script:
+
+```powershell
+python notebooks/model_evaluation.py
 ```
 
 ## Güvenlik Notu

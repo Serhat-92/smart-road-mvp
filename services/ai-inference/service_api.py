@@ -188,6 +188,16 @@ class HealthResponse(BaseModel):
     model_path: str
 
 
+class ModelInfoResponse(BaseModel):
+    model_name: str
+    model_version: str
+    model_path: str
+    device: str
+    classes: list[str]
+    vehicle_classes: list[str]
+    input_size: list[int]
+
+
 class RadarTrackInput(BaseModel):
     speed: float = Field(..., ge=0.0)
     box: list[float] | None = Field(default=None, min_length=4, max_length=4)
@@ -450,6 +460,50 @@ def create_app(state: InferenceAppState | None = None) -> FastAPI:
             lazy_model_load=settings.lazy_model_load,
             model_loaded=app_state.model_loaded,
             model_path=settings.model_path,
+        )
+
+    @app.get("/model/info", response_model=ModelInfoResponse)
+    async def get_model_info():
+        service = app_state.get_service()
+        detector = service.detector
+        model = getattr(detector, "model", None)
+
+        try:
+            import ultralytics
+
+            model_version = ultralytics.__version__
+        except Exception:  # pragma: no cover - defensive fallback
+            model_version = "unknown"
+
+        model_path = (
+            getattr(model, "ckpt_path", None)
+            or getattr(model, "pt_path", None)
+            or settings.model_path
+        )
+        model_name = str(model_path).replace("\\", "/").split("/")[-1].split(".")[0]
+        device_name = str(getattr(model, "device", "unknown"))
+
+        names = getattr(model, "names", None)
+        if names is None:
+            names = getattr(getattr(model, "model", None), "names", {})
+
+        if isinstance(names, dict):
+            classes = [str(names[key]) for key in sorted(names)]
+        else:
+            classes = [str(item) for item in list(names or [])]
+
+        vehicle_classes = [
+            detector._resolve_label(names, class_id) for class_id in detector.vehicle_classes
+        ]
+
+        return ModelInfoResponse(
+            model_name=model_name,
+            model_version=model_version,
+            model_path=str(model_path),
+            device=device_name,
+            classes=classes,
+            vehicle_classes=vehicle_classes,
+            input_size=[detector.image_size, detector.image_size],
         )
 
     @app.post(

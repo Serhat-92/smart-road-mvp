@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
 from urllib import error, request
@@ -169,7 +170,7 @@ def check_gateway_health(gateway_url: str, timeout_s: float) -> bool:
         return False
 
 
-def print_demo_summary(result) -> None:
+def print_demo_summary(result) -> dict:
     print("\nDemo summary")
     print("------------")
     print(f"Processed frames: {result.processed_frames}")
@@ -177,7 +178,14 @@ def print_demo_summary(result) -> None:
     print(f"Detections:       {result.total_detections}")
     print(f"Events generated: {result.generated_event_count}")
 
+    confidences = []
+    plate_detected_count = 0
+    plate_not_detected_count = 0
+
     for frame_result in result.frames:
+        for detection in frame_result.detections:
+            confidences.append(detection.confidence)
+
         if not frame_result.detections:
             continue
 
@@ -195,9 +203,38 @@ def print_demo_summary(result) -> None:
                 f"estimated_speed={speed_text}"
             )
 
+    for event in result.generated_events:
+        if getattr(event, "payload", {}).get("plate_number"):
+            plate_detected_count += 1
+        else:
+            plate_not_detected_count += 1
+
+    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+    min_confidence = min(confidences) if confidences else 0.0
+    max_confidence = max(confidences) if confidences else 0.0
+    detection_rate = result.total_detections / max(result.processed_frames, 1)
+    violation_rate = (result.generated_event_count / max(result.total_detections, 1)) * 100
+
+    print("\nPerformance Summary")
+    print("-------------------")
+    print(f"Avg Confidence:      {avg_confidence:.3f}")
+    print(f"Min/Max Confidence:  {min_confidence:.3f} / {max_confidence:.3f}")
+    print(f"Detection Rate:      {detection_rate:.2f} detections/frame")
+    print(f"Violation Rate:      {violation_rate:.1f}%")
+    print(f"Plate Detected:      {plate_detected_count} times")
+    print(f"Plate Not Detected:  {plate_not_detected_count} times")
+
     if not result.generated_events:
         print("\nNo speed violation events were generated.")
-        return
+        return {
+            "avg_confidence": float(avg_confidence),
+            "min_confidence": float(min_confidence),
+            "max_confidence": float(max_confidence),
+            "detection_rate": float(detection_rate),
+            "violation_rate": float(violation_rate),
+            "plate_detected_count": plate_detected_count,
+            "plate_not_detected_count": plate_not_detected_count,
+        }
 
     print("\nGenerated events")
     print("----------------")
@@ -209,6 +246,16 @@ def print_demo_summary(result) -> None:
         )
         if event.image_evidence_path:
             print(f"  evidence={event.image_evidence_path}")
+
+    return {
+        "avg_confidence": float(avg_confidence),
+        "min_confidence": float(min_confidence),
+        "max_confidence": float(max_confidence),
+        "detection_rate": float(detection_rate),
+        "violation_rate": float(violation_rate),
+        "plate_detected_count": plate_detected_count,
+        "plate_not_detected_count": plate_not_detected_count,
+    }
 
 
 def main() -> int:
@@ -336,13 +383,14 @@ def main() -> int:
             print("Stopping radar sensor...")
             sensor.stop()
 
-    print_demo_summary(result)
+    performance_metrics = print_demo_summary(result)
 
     output = {
         "processed_frames": result.processed_frames,
         "sampled_frames": result.sampled_frames,
         "total_detections": result.total_detections,
         "generated_event_count": result.generated_event_count,
+        "performance": performance_metrics,
         "generated_events": [
             {
                 "event_type": event.event_type,

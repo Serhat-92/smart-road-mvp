@@ -19,6 +19,14 @@ class StorageStatus(StrictBaseModel):
     reason: Optional[str] = None
 
 
+class RedisStatus(StrictBaseModel):
+    enabled: bool
+    connected: bool
+    state: str
+    url: Optional[str] = None
+    last_error: Optional[str] = None
+
+
 class HealthResponse(StrictBaseModel):
     status: str
     service: str
@@ -26,5 +34,6 @@ class HealthResponse(StrictBaseModel):
     environment: str
     database: DatabaseStatus
     storage: StorageStatus
+    redis: RedisStatus
     request_path: str
     request_id: Optional[str] = None
