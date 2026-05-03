@@ -36,6 +36,7 @@ class Settings:
     postgres_database: str
     postgres_echo: bool
     postgres_connect_timeout_seconds: int
+    gateway_api_seed_demo_data: bool = False
 
     ws_enabled: bool = True
     
@@ -85,6 +86,10 @@ def get_settings() -> Settings:
             default=("http://localhost:5173", "http://127.0.0.1:5173"),
         ),
         seed_demo_data=_as_bool(os.getenv("GATEWAY_API_SEED_DEMO_DATA"), default=False),
+        gateway_api_seed_demo_data=_as_bool(
+            os.getenv("GATEWAY_API_SEED_DEMO_DATA"),
+            default=False,
+        ),
         postgres_enabled=_as_bool(os.getenv("POSTGRES_ENABLED"), default=False),
         postgres_host=os.getenv("POSTGRES_HOST", "localhost"),
         postgres_port=int(os.getenv("POSTGRES_PORT", "5432")),

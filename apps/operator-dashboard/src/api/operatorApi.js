@@ -165,11 +165,19 @@ function deriveViolationAmount(payload, estimatedSpeed, speedLimit) {
   return null;
 }
 
-function deriveEvidencePath(payload) {
-  return payload?.image_evidence_path || null;
+function deriveEvidencePath(event, payload) {
+  return event?.image_evidence_path || payload?.image_evidence_path || null;
 }
 
-function deriveEvidenceUrl(evidencePath) {
+function deriveEvidenceUrl(event, evidencePath) {
+  if (event?.evidence_url) {
+    if (/^https?:\/\//i.test(event.evidence_url)) {
+      return event.evidence_url;
+    }
+
+    return `${apiConfig.apiBaseUrl}${event.evidence_url}`;
+  }
+
   if (!evidencePath) {
     return null;
   }
@@ -209,7 +217,8 @@ export function mapGatewayEvent(event) {
   const radarSpeed = deriveRadarSpeed(payload);
   const fusedSpeed = deriveFusedSpeed(payload);
   const speedLimit = deriveSpeedLimit(payload);
-  const evidencePath = deriveEvidencePath(payload);
+  const evidencePath = deriveEvidencePath(event, payload);
+  const evidenceUrl = deriveEvidenceUrl(event, evidencePath);
 
   return {
     eventId: String(event.id || payload.event_id || `${event.event_type}-${event.occurred_at}`),
@@ -231,8 +240,8 @@ export function mapGatewayEvent(event) {
     speedLimit,
     violationAmount: deriveViolationAmount(payload, estimatedSpeed, speedLimit),
     evidencePath,
-    evidenceUrl: deriveEvidenceUrl(evidencePath),
-    evidenceAvailable: Boolean(evidencePath),
+    evidenceUrl,
+    evidenceAvailable: Boolean(evidencePath || evidenceUrl),
     sourceService: payload?.source_service || null,
     plateNumber: payload?.plate_number || null,
     operatorStatus: event.operator_status ?? payload?.operator_status ?? "pending",

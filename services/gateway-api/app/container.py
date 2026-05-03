@@ -52,14 +52,6 @@ def build_container(settings: Settings) -> ServiceContainer:
         },
     )
 
-    if settings.seed_demo_data:
-        from app.core.demo_data import seed_demo_data
-
-        seed_demo_data(
-            device_service=device_service,
-            event_service=event_service,
-        )
-
     return ServiceContainer(
         settings=settings,
         database=database,

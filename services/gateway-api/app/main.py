@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.exception_handlers import install_exception_handlers
 from app.api.router import api_router
@@ -26,6 +27,12 @@ async def lifespan(app: FastAPI):
     container = build_container(settings)
     app.state.container = container
     await container.database.connect()
+
+    from app.seed import seed_demo_data
+
+    if settings.gateway_api_seed_demo_data:
+        await seed_demo_data(container)
+        logger.info("Demo seed data loaded.")
 
     # ── Redis ViolationConsumer ─────────────────────────────────────
     consumer = None
@@ -121,6 +128,11 @@ def create_app() -> FastAPI:
 
     install_exception_handlers(app)
     app.include_router(api_router)
+
+    evidence_dir = os.getenv("EVIDENCE_DIR", "/app/datasets/evidence")
+    if os.path.exists(evidence_dir):
+        app.mount("/evidence", StaticFiles(directory=evidence_dir), name="evidence")
+
     return app
 
 

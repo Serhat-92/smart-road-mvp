@@ -102,6 +102,16 @@ class EventRepository:
     @staticmethod
     def _orm_to_dict(row) -> dict:
         """Convert an EventRecord ORM instance to a plain dict matching EventRead schema."""
+        image_evidence_path = row.image_evidence_path
+        evidence_url = None
+        if image_evidence_path:
+            normalized_path = str(image_evidence_path).replace("\\", "/").lstrip("/")
+            for prefix in ("datasets/evidence/", "app/datasets/evidence/"):
+                if normalized_path.startswith(prefix):
+                    normalized_path = normalized_path[len(prefix):]
+                    break
+            evidence_url = f"/evidence/{normalized_path}"
+
         return {
             "id": row.id,
             "event_type": row.event_type,
@@ -111,5 +121,7 @@ class EventRepository:
             "occurred_at": row.created_at,
             "created_at": row.created_at,
             "plate_number": row.plate_number,
+            "image_evidence_path": image_evidence_path,
+            "evidence_url": evidence_url,
             "operator_status": row.operator_status,
         }

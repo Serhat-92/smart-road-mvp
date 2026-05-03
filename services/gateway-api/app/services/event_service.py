@@ -194,11 +194,28 @@ class EventService:
         except ValidationError as exc:
             raise EventPayloadValidationError(details=exc.errors()) from exc
 
+        image_evidence_path = payload_dict["payload"].get("image_evidence_path")
+        evidence_url = self._build_evidence_url(image_evidence_path)
+
         return {
             "id": uuid4(),
             **payload_dict,
+            "image_evidence_path": image_evidence_path,
+            "evidence_url": evidence_url,
             "created_at": now,
         }
+
+    @staticmethod
+    def _build_evidence_url(image_evidence_path: str | None) -> str | None:
+        if not image_evidence_path:
+            return None
+
+        normalized_path = str(image_evidence_path).replace("\\", "/").lstrip("/")
+        for prefix in ("datasets/evidence/", "app/datasets/evidence/"):
+            if normalized_path.startswith(prefix):
+                normalized_path = normalized_path[len(prefix):]
+                break
+        return f"/evidence/{normalized_path}"
 
     @staticmethod
     def _log_stored(saved: dict) -> None:

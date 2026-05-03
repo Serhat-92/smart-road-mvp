@@ -2,8 +2,9 @@ import { useState } from "react";
 
 export default function EvidencePreview({ event, compact = false }) {
   const [hasError, setHasError] = useState(false);
+  const imageSrc = event.evidenceUrl || event.evidencePath || null;
 
-  if (!event.evidenceAvailable || !event.evidenceUrl || hasError) {
+  if (!event.evidenceAvailable || !imageSrc || hasError) {
     return (
       <div className={compact ? "evidence-card evidence-card-compact" : "evidence-card"}>
         <span className="mono-label">Evidence</span>
@@ -17,7 +18,7 @@ export default function EvidencePreview({ event, compact = false }) {
     <div className={compact ? "evidence-card evidence-card-compact" : "evidence-card"}>
       <img
         className={compact ? "evidence-image evidence-image-compact" : "evidence-image"}
-        src={event.evidenceUrl}
+        src={imageSrc}
         alt={`Evidence for ${event.type}`}
         loading="lazy"
         onError={() => setHasError(true)}
