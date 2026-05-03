@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from urllib import error, parse, request
 
 
@@ -44,7 +45,17 @@ def fetch_json(url: str, *, method: str = "GET", data: bytes | None = None, head
         return json.loads(response.read().decode("utf-8"))
 
 
+def console_safe_symbol(symbol: str) -> str:
+    encoding = sys.stdout.encoding or "utf-8"
+    try:
+        symbol.encode(encoding)
+    except UnicodeEncodeError:
+        return {"\u2713": "OK", "\u2717": "X", "?": "?"}.get(symbol, symbol)
+    return symbol
+
+
 def print_status(symbol: str, label: str, message: str) -> None:
+    symbol = console_safe_symbol(symbol)
     print(f"[{symbol}] {label:<18}: {message}")
 
 
